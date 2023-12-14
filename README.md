@@ -1,5 +1,7 @@
-# High-performance palindrome sequence generator.
-Why? Mainly made it to check my Python assignment. It also helps in deepening my understanding of palindromes.
+**High-performance palindrome sequence generator.**
+
+# Why?
+Mainly made it to check my Python assignment. It also helps in deepening my understanding of palindromes.
 
 # Features
 • Low-memory footprint and minimal GC allocations
