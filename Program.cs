@@ -70,8 +70,8 @@ namespace PalindromeGenerator
                       ZERO_ASCII = '0',
                       NINE_ASCII = '9';
 
-            // The + 1 -s will be constant folded. They are required because
-            // maxValue parameter is exclusive. Too much python...
+            // The + 1 -s will be constant folded. They are required because maxValue parameter is exclusive.
+            // Too much python...
             var shouldCapitalize = random.Next(-1, 0 + 1);
             
             var shouldGenerateNumbers = random.Next(-1, 0 + 1);
@@ -84,20 +84,44 @@ namespace PalindromeGenerator
             return (char) ((alphabet & ~shouldGenerateNumbers) | (number & shouldGenerateNumbers)); 
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static char GenerateNonAlphaNumericCharacter(Random random)
+        {
+            // https://www.asciitable.com/
+            
+            const int START_ASCII = ' ',
+                      END_ASCII = '/';
+
+            // The + 1 -s will be constant folded. They are required because maxValue parameter is exclusive.
+            // Too much python...
+            return (char) random.Next(START_ASCII, END_ASCII + 1);
+        }
+        
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
         {
             const int MAX_CHARS = 100;
             
             var charBuffer = stackalloc char[MAX_CHARS];
+
+            // This includes '\n'
+            const int SINGLE_CHAR_VARIANTS_TOTAL_LENGTH = 3;
+            
+            var singleCharSpan = new ReadOnlySpan<char>(charBuffer, SINGLE_CHAR_VARIANTS_TOTAL_LENGTH);
             
             for (int currentIterationCount = 1; currentIterationCount <= iterationCount; currentIterationCount++)
             {
                 // Generate single character sequence
 
-                var current = GenerateAlphaNumericCharacter(random);
+                // Generate alphanumeric single character
+                *charBuffer = GenerateAlphaNumericCharacter(random);
+
+                *(charBuffer + 1) = '\n';
                 
-                stream.WriteLine(current);
+                // Generate non-alphanumeric single character
+                *(charBuffer + 2) = GenerateNonAlphaNumericCharacter(random);
+                
+                stream.WriteLine(singleCharSpan);
 
                 // Generate even sequence
                 
