@@ -1,4 +1,6 @@
-**High-performance palindrome sequence generator.**
+# What is this?
+
+**A high-performance palindrome sequence generator.**
 
 # Why?
 Mainly made it to check my Python assignment. It also helps in deepening my understanding of palindromes.
