@@ -49,7 +49,7 @@ namespace PalindromeGenerator
 
             else
             {
-                GenerateWordUnit(iterationCount, random, stream, stringBuilder);
+                GenerateWordUnit(iterationCount, random, stream);
             }
             
             stream.Close();
@@ -140,8 +140,7 @@ namespace PalindromeGenerator
             }
         }
         
-        private static void GenerateWordUnit(int iterationCount, Random random, StreamWriter streamWriter,
-            StringBuilder stringBuilder)
+        private static void GenerateWordUnit(int iterationCount, Random random, StreamWriter stream)
         {
             
         }
