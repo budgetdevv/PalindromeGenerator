@@ -111,10 +111,7 @@ namespace PalindromeGenerator
         private const int MAX_CHARS = 100;
 
         [StructLayout(LayoutKind.Explicit, Size = MAX_CHARS * sizeof(char))]
-        private struct CharBuffer
-        {
-            
-        }
+        private struct CharBuffer { }
         
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
