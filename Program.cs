@@ -25,6 +25,11 @@ namespace PalindromeGenerator
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void Main()
         {
+            // How to check codegen:
+            // Mac:
+            // export DOTNET_JitDisasm="Generate*Unit"
+            // dotnet run -c Release
+            
             var output = "Iteration count";
 
             var iterationCount = PromptForIntegerInput(output, 1);
@@ -79,6 +84,7 @@ namespace PalindromeGenerator
             return (char) ((alphabet & ~shouldGenerateNumbers) | (number & shouldGenerateNumbers)); 
         }
         
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
         {
             const int MAX_CHARS = 100;
@@ -209,6 +215,7 @@ namespace PalindromeGenerator
             #endif
         }
         
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static void GenerateWordUnit(int iterationCount, Random random, StreamWriter stream)
         {
             
