@@ -108,36 +108,31 @@ namespace PalindromeGenerator
             return (char) random.Next(START_ASCII, END_ASCII + 1);
         }
         
+        private const int MAX_CHARS = 100;
+
+        [StructLayout(LayoutKind.Explicit, Size = MAX_CHARS * sizeof(char))]
+        private struct CharBuffer
+        {
+            
+        }
+        
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
         {
-            const int MAX_CHARS = 100;
-
             const bool CONSTANT_GENERATION = false,
                        OUTPUT_ENABLED = true,
                        GENERATE_SINGLE_CHAR_SEQUENCE = true,
                        GENERATE_EVEN_SEQUENCE = true,
-                       GENERATE_ODD_SEQUENCE = true,
-                       STACK_ALLOC = true;
-
-            if (!STACK_ALLOC)
-            {
-                goto HEAP_ALLOC;
-            }
+                       GENERATE_ODD_SEQUENCE = true;
             
-            var charBuffer = stackalloc char[MAX_CHARS];
-
-            goto Start;
-
-            char[] charBufferArr;
+            // https://github.com/dotnet/runtime/issues/52979
+            // var charBuffer = stackalloc char[MAX_CHARS];
             
-            HEAP_ALLOC:
-            charBufferArr = GC.AllocateUninitializedArray<char>(MAX_CHARS);
+            CharBuffer charBufferVar;
 
-            charBuffer = (char*) Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(charBufferArr));
+            var charBuffer = (char*) &charBufferVar;
             
-            Start:
             // This includes '\n'
             const int SINGLE_CHAR_VARIANTS_TOTAL_LENGTH = 3;
 
@@ -244,11 +239,6 @@ namespace PalindromeGenerator
                 { 
                     stream.WriteLine(singleCharSpan);
                 }
-            }
-            
-            if (!STACK_ALLOC)
-            {
-                GC.KeepAlive(charBufferArr);
             }
         }
 
