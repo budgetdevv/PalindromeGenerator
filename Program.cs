@@ -110,8 +110,13 @@ namespace PalindromeGenerator
         
         private const int MAX_CHARS = 100;
 
-        [StructLayout(LayoutKind.Explicit, Size = MAX_CHARS * sizeof(char))]
-        private struct CharBuffer { }
+        //[StructLayout(LayoutKind.Explicit, Size = MAX_CHARS * sizeof(char))]
+        [InlineArray(MAX_CHARS)]
+        private struct CharBuffer
+        {
+            //[FieldOffset(0)]
+            public char first;
+        }
         
         [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
@@ -128,7 +133,7 @@ namespace PalindromeGenerator
             
             CharBuffer charBufferVar;
 
-            var charBuffer = (char*) &charBufferVar;
+            var charBuffer = &charBufferVar.first;
             
             // This includes '\n'
             const int SINGLE_CHAR_VARIANTS_TOTAL_LENGTH = 3;
@@ -147,9 +152,9 @@ namespace PalindromeGenerator
                 {
                     // Generate alphanumeric single character
                     *charBuffer = GenerateAlphaNumericCharacter(random, CONSTANT_GENERATION);
-
+                    
                     *(charBuffer + 1) = '\n';
-                
+                    
                     // Generate non-alphanumeric single character
                     *(charBuffer + 2) = GenerateNonAlphaNumericCharacter(random, CONSTANT_GENERATION);
 
