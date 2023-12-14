@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace PalindromeGenerator
 {
-    internal class Program
+    internal static class Program
     {
         private static int PromptForIntegerInput(string promptText, int min = int.MinValue, int max = Int32.MaxValue)
         {
