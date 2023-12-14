@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace PalindromeGenerator
 {
@@ -60,8 +61,13 @@ namespace PalindromeGenerator
         private static readonly string OUTPUT_PATH = Path.GetFullPath("output.json");
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static char GenerateAlphaNumericCharacter(Random random)
+        private static char GenerateAlphaNumericCharacter(Random random, bool constantGeneration)
         {
+            if (constantGeneration)
+            {
+                return 'a';
+            }
+            
             // https://www.asciitable.com/
             
             const int CAPS_OFFSET = 'a' - 'A',
@@ -85,8 +91,13 @@ namespace PalindromeGenerator
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static char GenerateNonAlphaNumericCharacter(Random random)
+        private static char GenerateNonAlphaNumericCharacter(Random random, bool constantGeneration)
         {
+            if (constantGeneration)
+            {
+                return '@';
+            }
+            
             // https://www.asciitable.com/
             
             const int START_ASCII = ' ',
@@ -97,93 +108,147 @@ namespace PalindromeGenerator
             return (char) random.Next(START_ASCII, END_ASCII + 1);
         }
         
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
         {
             const int MAX_CHARS = 100;
+
+            const bool CONSTANT_GENERATION = false,
+                       OUTPUT_ENABLED = true,
+                       GENERATE_SINGLE_CHAR_SEQUENCE = true,
+                       GENERATE_EVEN_SEQUENCE = true,
+                       GENERATE_ODD_SEQUENCE = true,
+                       STACK_ALLOC = true;
+
+            if (!STACK_ALLOC)
+            {
+                goto HEAP_ALLOC;
+            }
             
             var charBuffer = stackalloc char[MAX_CHARS];
 
+            goto Start;
+
+            char[] charBufferArr;
+            
+            HEAP_ALLOC:
+            charBufferArr = GC.AllocateUninitializedArray<char>(MAX_CHARS);
+
+            charBuffer = (char*) Unsafe.AsPointer(ref MemoryMarshal.GetArrayDataReference(charBufferArr));
+            
+            Start:
             // This includes '\n'
             const int SINGLE_CHAR_VARIANTS_TOTAL_LENGTH = 3;
-            
-            var singleCharSpan = new ReadOnlySpan<char>(charBuffer, SINGLE_CHAR_VARIANTS_TOTAL_LENGTH);
+
+            ReadOnlySpan<char> singleCharSpan;
+
+            if (OUTPUT_ENABLED)
+            {
+                singleCharSpan = MemoryMarshal.CreateReadOnlySpan(ref *charBuffer, SINGLE_CHAR_VARIANTS_TOTAL_LENGTH);
+            }
             
             for (int currentIterationCount = 1; currentIterationCount <= iterationCount; currentIterationCount++)
             {
                 // Generate single character sequence
+                if (GENERATE_SINGLE_CHAR_SEQUENCE)
+                {
+                    // Generate alphanumeric single character
+                    *charBuffer = GenerateAlphaNumericCharacter(random, CONSTANT_GENERATION);
 
-                // Generate alphanumeric single character
-                *charBuffer = GenerateAlphaNumericCharacter(random);
-
-                *(charBuffer + 1) = '\n';
+                    *(charBuffer + 1) = '\n';
                 
-                // Generate non-alphanumeric single character
-                *(charBuffer + 2) = GenerateNonAlphaNumericCharacter(random);
-                
-                stream.WriteLine(singleCharSpan);
+                    // Generate non-alphanumeric single character
+                    *(charBuffer + 2) = GenerateNonAlphaNumericCharacter(random, CONSTANT_GENERATION);
 
-                // Generate even sequence
+                    if (OUTPUT_ENABLED)
+                    {
+                        stream.WriteLine(singleCharSpan);
+                    }
+                }
                 
                 const int MIN_CHARS = 4;
+
+                int currentCount, currentHalfCount;
+
+                char* firstHalfLastPtrOffsetByOne, secondHalfCurrentPtr, firstHalfCurrentPtr;
+
+                ReadOnlySpan<char> span;
                 
-                var currentCount = random.Next(MIN_CHARS, MAX_CHARS);
-
-                currentCount = (currentCount % 2 == 0) ? currentCount : currentCount - 1;
-
-                var currentHalfCount = currentCount / 2;
-
-                //      ( Half )
-                //      v
-                // [0, 1, 2, 3] Count: 4, Half-count: 2
-                var firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
-
-                // Start from last element of second-half
-                var secondHalfCurrentPtr = charBuffer + currentCount - 1;
-
-                var firstHalfCurrentPtr = charBuffer;
-                
-                for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
+                // Generate even sequence
+                if (GENERATE_EVEN_SEQUENCE)
                 {
-                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
-                }
-                
-                var span = new ReadOnlySpan<char>(charBuffer, currentCount);
+                    currentCount = random.Next(MIN_CHARS, MAX_CHARS);
 
-                // TODO: The JIT compiler should be smart enough to eliminate this whole expression in RELEASE mode
-                ValidateIsCharUnitPalindrome(span, $"1 | {nameof(GenerateCharUnit)}");
+                    currentCount = (currentCount % 2 == 0) ? currentCount : currentCount - 1;
+
+                    currentHalfCount = currentCount / 2;
+
+                    //      ( Half )
+                    //      v
+                    // [0, 1, 2, 3] Count: 4, Half-count: 2
+                    firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
+
+                    // Start from last element of second-half
+                    secondHalfCurrentPtr = charBuffer + currentCount - 1;
+
+                    firstHalfCurrentPtr = charBuffer;
                 
-                stream.WriteLine(span);
+                    for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
+                    {
+                        *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random, CONSTANT_GENERATION);
+                    }
+                
+                    span = MemoryMarshal.CreateReadOnlySpan(ref *charBuffer, currentCount);
+
+                    // TODO: The JIT compiler should be smart enough to eliminate this whole expression in RELEASE mode
+                    ValidateIsCharUnitPalindrome(span, $"1 | {nameof(GenerateCharUnit)}");
+                
+                    if (OUTPUT_ENABLED)
+                    {
+                        stream.WriteLine(singleCharSpan);
+                    }
+                }
                 
                 // Generate odd sequence
-                
-                currentCount = random.Next(MIN_CHARS, MAX_CHARS);
-                
-                currentCount = (currentCount % 2 != 0) ? currentCount : currentCount - 1;
-                
-                // Division truncates. So currentCount == (currentHalfCount * 2) + 1
-                currentHalfCount = currentCount / 2;
-                
-                firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
-                
-                secondHalfCurrentPtr = charBuffer + currentCount - 1;
-                
-                firstHalfCurrentPtr = charBuffer;
-                
-                for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
+                if (GENERATE_ODD_SEQUENCE)
                 {
-                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
+                    currentCount = random.Next(MIN_CHARS, MAX_CHARS);
+                
+                    currentCount = (currentCount % 2 != 0) ? currentCount : currentCount - 1;
+                
+                    // Division truncates. So currentCount == (currentHalfCount * 2) + 1
+                    currentHalfCount = currentCount / 2;
+                
+                    firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
+                
+                    secondHalfCurrentPtr = charBuffer + currentCount - 1;
+                
+                    firstHalfCurrentPtr = charBuffer;
+                
+                    for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
+                    {
+                        *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random, CONSTANT_GENERATION);
+                    }
+
+                    Debug.Assert(firstHalfCurrentPtr == secondHalfCurrentPtr);
+                
+                    *firstHalfCurrentPtr = GenerateAlphaNumericCharacter(random, CONSTANT_GENERATION);
+
+                    span = MemoryMarshal.CreateReadOnlySpan(ref *charBuffer, currentCount);
+                
+                    ValidateIsCharUnitPalindrome(span, $"2 | {nameof(GenerateCharUnit)}");
                 }
-
-                Debug.Assert(firstHalfCurrentPtr == secondHalfCurrentPtr);
                 
-                *firstHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
-
-                span = new ReadOnlySpan<char>(charBuffer, currentCount);
-                
-                ValidateIsCharUnitPalindrome(span, $"2 | {nameof(GenerateCharUnit)}");
-                
-                stream.WriteLine(span);
+                if (OUTPUT_ENABLED)
+                { 
+                    stream.WriteLine(singleCharSpan);
+                }
+            }
+            
+            if (!STACK_ALLOC)
+            {
+                GC.KeepAlive(charBufferArr);
             }
         }
 
@@ -239,6 +304,7 @@ namespace PalindromeGenerator
             #endif
         }
         
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         private static void GenerateWordUnit(int iterationCount, Random random, StreamWriter stream)
         {
