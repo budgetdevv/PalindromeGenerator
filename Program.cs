@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace PalindromeGenerator
@@ -11,6 +13,8 @@ namespace PalindromeGenerator
             
             while (true)
             {
+                Console.WriteLine(promptText);
+                
                 if (int.TryParse(Console.ReadLine(), out var selection) && unchecked((uint) (selection - min)) <= diff)
                 {
                     return selection;
@@ -47,27 +51,27 @@ namespace PalindromeGenerator
             {
                 GenerateWordUnit(iterationCount, random, stream, stringBuilder);
             }
+            
+            stream.Close();
         }
 
         private const string OUTPUT_PATH = "output.json";
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static char GenerateAlphabet(Random random)
         {
             const int CAPS_OFFSET = 'a' - 'A',
                       A_ASCII = 'A',
                       Z_ASCII = 'Z';
 
-            var shouldCapitalize = random.Next(0, -1);
+            var shouldCapitalize = random.Next(-1, 0);
 
             return (char) (random.Next(A_ASCII, Z_ASCII) + (CAPS_OFFSET & shouldCapitalize));
         }
         
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
         {
-            const int MIN = int.MinValue,
-                      MAX = int.MaxValue,
-                      MAX_CHARS = 4001,
-                      MAX_CHARS_PER_HALF = MAX_CHARS / 2;
+            const int MAX_CHARS = 100;
             
             var charBuffer = stackalloc char[MAX_CHARS];
             
@@ -75,20 +79,65 @@ namespace PalindromeGenerator
             {
                 // Generate single character sequence
 
-                var current = (char) random.Next(MIN, MAX);
+                var current = GenerateAlphabet(random);
                 
-                stream.Write(current);
+                stream.WriteLine(current);
 
-                var currentCount = random.Next(1, MAX_CHARS_PER_HALF);
+                // Generate even sequence
+                
+                const int MIN_CHARS = 4;
+                
+                var currentCount = random.Next(MIN_CHARS, MAX_CHARS);
 
-                var currentPtr = charBuffer;
+                currentCount = (currentCount % 2 == 0) ? currentCount : currentCount - 1;
 
-                var lastPtr = charBuffer + currentCount;
+                var currentHalfCount = currentCount / 2;
 
-                for (; currentPtr != lastPtr; currentPtr++)
+                //      ( Half )
+                //      v
+                // [0, 1, 2, 3] Count: 4, Half-count: 2
+                var firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
+
+                // Start from last element of second-half
+                var secondHalfCurrentPtr = charBuffer + currentCount - 1;
+
+                var firstHalfCurrentPtr = charBuffer;
+                
+                for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
                 {
-                    *currentPtr = GenerateAlphabet(random);
+                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphabet(random);
                 }
+                
+                stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
+                
+                // Generate odd sequence
+                
+                currentCount = random.Next(MIN_CHARS, MAX_CHARS);
+                
+                currentCount = (currentCount % 2 != 0) ? currentCount : currentCount - 1;
+                
+                // Division truncates. So currentCount == (currentHalfCount * 2) + 1
+                currentHalfCount = currentCount / 2;
+                
+                firstHalfLastPtrOffsetByOne = charBuffer + currentHalfCount;
+                
+                secondHalfCurrentPtr = charBuffer + currentCount - 1;
+                
+                //  
+                // [0, 1, 2, 3, 4]
+                
+                firstHalfCurrentPtr = charBuffer;
+                
+                for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
+                {
+                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphabet(random);
+                }
+
+                Debug.Assert(firstHalfCurrentPtr == secondHalfCurrentPtr);
+                
+                *firstHalfCurrentPtr = GenerateAlphabet(random);
+                
+                stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
             }
         }
         
