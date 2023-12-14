@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace PalindromeGenerator
 {
@@ -39,8 +37,6 @@ namespace PalindromeGenerator
             var random = new Random();
 
             var stream = File.CreateText(OUTPUT_PATH);
-
-            var stringBuilder = new StringBuilder();
             
             if (PromptForIntegerInput(output, 1, 2) == 1)
             {
