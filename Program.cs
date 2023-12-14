@@ -201,7 +201,7 @@ namespace PalindromeGenerator
                 
                     if (OUTPUT_ENABLED)
                     {
-                        stream.WriteLine(singleCharSpan);
+                        stream.WriteLine(span);
                     }
                 }
                 
@@ -237,7 +237,7 @@ namespace PalindromeGenerator
                 
                 if (OUTPUT_ENABLED)
                 { 
-                    stream.WriteLine(singleCharSpan);
+                    stream.WriteLine(span);
                 }
             }
         }
