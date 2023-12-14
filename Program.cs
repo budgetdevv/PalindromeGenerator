@@ -123,7 +123,6 @@ namespace PalindromeGenerator
                 
                 secondHalfCurrentPtr = charBuffer + currentCount - 1;
                 
-                //  
                 // [0, 1, 2, 3, 4]
                 
                 firstHalfCurrentPtr = charBuffer;
