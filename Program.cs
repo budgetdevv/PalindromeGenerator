@@ -56,17 +56,30 @@ namespace PalindromeGenerator
         }
 
         private const string OUTPUT_PATH = "output.json";
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static char GenerateAlphabet(Random random)
+        private static char GenerateAlphaNumericCharacter(Random random)
         {
+            // https://www.asciitable.com/
+            
             const int CAPS_OFFSET = 'a' - 'A',
                       A_ASCII = 'A',
-                      Z_ASCII = 'Z';
+                      Z_ASCII = 'Z',
+                      ZERO_ASCII = '0',
+                      NINE_ASCII = '9';
 
-            var shouldCapitalize = random.Next(-1, 0);
+            // The + 1 -s will be constant folded. They are required because
+            // maxValue parameter is exclusive. Too much python...
+            var shouldCapitalize = random.Next(-1, 0 + 1);
+            
+            var shouldGenerateNumbers = random.Next(-1, 0 + 1);
+            
+            var alphabet = random.Next(A_ASCII, Z_ASCII + 1) + (CAPS_OFFSET & shouldCapitalize);
 
-            return (char) (random.Next(A_ASCII, Z_ASCII) + (CAPS_OFFSET & shouldCapitalize));
+            var number = random.Next(ZERO_ASCII, NINE_ASCII + 1);
+            
+            // TODO: Is cmov faster?
+            return (char) ((alphabet & ~shouldGenerateNumbers) | (number & shouldGenerateNumbers)); 
         }
         
         private static unsafe void GenerateCharUnit(int iterationCount, Random random, StreamWriter stream)
@@ -79,7 +92,7 @@ namespace PalindromeGenerator
             {
                 // Generate single character sequence
 
-                var current = GenerateAlphabet(random);
+                var current = GenerateAlphaNumericCharacter(random);
                 
                 stream.WriteLine(current);
 
@@ -105,7 +118,7 @@ namespace PalindromeGenerator
                 
                 for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
                 {
-                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphabet(random);
+                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
                 }
                 
                 stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
@@ -127,12 +140,12 @@ namespace PalindromeGenerator
                 
                 for (; firstHalfCurrentPtr != firstHalfLastPtrOffsetByOne; firstHalfCurrentPtr++, secondHalfCurrentPtr--)
                 {
-                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphabet(random);
+                    *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
                 }
 
                 Debug.Assert(firstHalfCurrentPtr == secondHalfCurrentPtr);
                 
-                *firstHalfCurrentPtr = GenerateAlphabet(random);
+                *firstHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
                 
                 stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
             }
