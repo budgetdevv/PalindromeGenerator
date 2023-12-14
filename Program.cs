@@ -25,9 +25,7 @@ namespace PalindromeGenerator
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void Main()
         {
-            string output;
-            
-            output = "Iteration count";
+            var output = "Iteration count";
 
             var iterationCount = PromptForIntegerInput(output, 1);
             
