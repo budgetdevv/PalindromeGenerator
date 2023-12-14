@@ -22,7 +22,8 @@ namespace PalindromeGenerator
             }
         }
         
-        private static void Main(string[] args)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void Main()
         {
             string output;
             
@@ -49,9 +50,11 @@ namespace PalindromeGenerator
             }
             
             stream.Close();
+
+            Console.WriteLine($"File generated at: {OUTPUT_PATH}");
         }
 
-        private const string OUTPUT_PATH = "output.json";
+        private static readonly string OUTPUT_PATH = Path.GetFullPath("output.json");
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static char GenerateAlphaNumericCharacter(Random random)
@@ -117,7 +120,12 @@ namespace PalindromeGenerator
                     *firstHalfCurrentPtr = *secondHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
                 }
                 
-                stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
+                var span = new ReadOnlySpan<char>(charBuffer, currentCount);
+
+                // TODO: The JIT compiler should be smart enough to eliminate this whole expression in RELEASE mode
+                ValidateIsCharUnitPalindrome(span, $"1 | {nameof(GenerateCharUnit)}");
+                
+                stream.WriteLine(span);
                 
                 // Generate odd sequence
                 
@@ -142,9 +150,65 @@ namespace PalindromeGenerator
                 Debug.Assert(firstHalfCurrentPtr == secondHalfCurrentPtr);
                 
                 *firstHalfCurrentPtr = GenerateAlphaNumericCharacter(random);
+
+                span = new ReadOnlySpan<char>(charBuffer, currentCount);
                 
-                stream.WriteLine(new ReadOnlySpan<char>(charBuffer, currentCount));
+                ValidateIsCharUnitPalindrome(span, $"2 | {nameof(GenerateCharUnit)}");
+                
+                stream.WriteLine(span);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ValidateIsCharUnitPalindrome(ReadOnlySpan<char> sequence, string methodName)
+        {
+            #if DEBUG
+            // Performance is not paramount here
+            
+            // ODD
+            // Length: 7, Halved ( Round up ): 4
+            //   |   4    |
+            //            |    4   |
+            // [ 0, 1, 2, 3, 4, 5, 6 ]
+            
+            // EVEN
+            // Length: 6, Halved ( Round up ): 3
+            //   |  3  |
+            //            |  3  |
+            // [ 0, 1, 2, 3, 4, 5 ]
+
+            var length = sequence.Length;
+            
+            var rem = length % 2;
+            
+            var lengthHalved = (length / 2) + rem;
+
+            var firstHalf = sequence.Slice(0, lengthHalved);
+            
+            // If it is odd length, lengthHalved is the new start. Otherwise it is lengthHalved - 1
+            // ( See above for more info )
+            var secondHalfStartIndex = (rem == 0) ? lengthHalved : lengthHalved - 1; 
+            
+            var secondHalf = sequence.Slice(secondHalfStartIndex, lengthHalved);
+
+            //   0  1  2
+            // [ A, B, A ] Length: 3
+            // ( 3 - 1 ) - 0 ( Left Index ) = 2, which is the index of the corresponding element ( Right index )
+            // A ( Index 0 ) compared against A ( Index 2 )
+            // ( 3 - 1 ) - 1 ( Left Index ) = 1, which is the index of the corresponding element ( Right index )
+            // B ( Index 1 ) compared against B ( Index 1 )
+            var lengthHalvedMinusOne = lengthHalved - 1;
+            
+            for (int leftIndex = 0; leftIndex < firstHalf.Length; leftIndex++)
+            {
+                var rightIndex = lengthHalvedMinusOne - leftIndex;
+
+                if (firstHalf[leftIndex] != secondHalf[rightIndex])
+                {
+                    throw new Exception($"Sequence is NOT valid palindrome! \nMethod Name: {methodName}\nLeft Index: {leftIndex}\nRight Index: {rightIndex} ]");
+                }
+            }
+            #endif
         }
         
         private static void GenerateWordUnit(int iterationCount, Random random, StreamWriter stream)
